@@ -1,0 +1,13 @@
+{
+  "name": "snake-node",
+  "version": "1.0.0",
+  "description": "Snake game TCP server using Node.js built-in net module",
+  "main": "snake_game.js",
+  "scripts": {
+    "dev": "node snake_game.js",
+    "start": "node snake_game.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
