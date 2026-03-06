@@ -1,0 +1,24 @@
+
+uv init .
+uv add sentence_transformers chromadb google-genai python-dotenv
+
+uv run --with jupyter jupyter lab
+
+
+
+代码 
+
+
+
+from typing import List
+
+def split_into_chunks(doc_file: str) -> List[str]:
+    with open(doc_file, 'r', encoding='utf-8') as file:
+        content = file.read()
+    # 按两个换行分块，如果你的文件是实际的空行（回车两次），这里用 "\n\n"
+    return [chunk for chunk in content.split("\n\n") if chunk.strip()]
+
+chunks = split_into_chunks("doc.md")
+
+for i, chunk in enumerate(chunks):
+    print(f"[{i}] {chunk}\n")
