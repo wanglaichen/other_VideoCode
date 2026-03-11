@@ -2,6 +2,7 @@ import ast
 import inspect
 import os
 import re
+import sys
 from string import Template
 from typing import List, Callable, Tuple
 
@@ -11,6 +12,29 @@ from openai import OpenAI
 import platform
 
 from prompt_template import react_system_prompt_template
+
+
+def configure_console_utf8() -> None:
+    """Best-effort UTF-8 setup for Windows console I/O."""
+    if os.name != "nt":
+        return
+
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleOutputCP(65001)
+    except Exception:
+        # Non-fatal: some environments do not expose Win32 console APIs.
+        pass
+
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream is not None and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
 
 class ReActAgent:
@@ -23,10 +47,33 @@ class ReActAgent:
             api_key=ReActAgent.get_api_key(),
         )
 
+    @staticmethod
+    def _to_utf8_safe_text(value) -> str:
+        text = value if isinstance(value, str) else str(value)
+        return text.encode("utf-8", errors="replace").decode("utf-8")
+
+    @classmethod
+    def _to_utf8_safe_messages(cls, messages):
+        safe_messages = []
+        for message in messages:
+            safe_messages.append(
+                {
+                    "role": message.get("role", "user"),
+                    "content": cls._to_utf8_safe_text(message.get("content", "")),
+                }
+            )
+        return safe_messages
+
     def run(self, user_input: str):
+        safe_user_input = self._to_utf8_safe_text(user_input)
         messages = [
-            {"role": "system", "content": self.render_system_prompt(react_system_prompt_template)},
-            {"role": "user", "content": f"<question>{user_input}</question>"}
+            {
+                "role": "system",
+                "content": self._to_utf8_safe_text(
+                    self.render_system_prompt(react_system_prompt_template)
+                ),
+            },
+            {"role": "user", "content": f"<question>{safe_user_input}</question>"}
         ]
         format_retry_count = 0
         write_retry_count = 0
@@ -165,7 +212,10 @@ class ReActAgent:
             or os.getenv("OPENROUTER_API_KEY")
         )
         if not api_key:
-            raise ValueError("未找到 API Key，请在 .env 中设置 MINIMAX_API_KEY。")
+            raise ValueError(
+                "API key not found. Set MINIMAX_API_KEY in .env "
+                "(you can copy .env.example to .env first)."
+            )
         return api_key
 
     @staticmethod
@@ -182,11 +232,12 @@ class ReActAgent:
 
     def call_model(self, messages):
         print("\n\n正在请求模型，请稍等...")
+        safe_messages = self._to_utf8_safe_messages(messages)
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=safe_messages,
         )
-        content = response.choices[0].message.content or ""
+        content = self._to_utf8_safe_text(response.choices[0].message.content or "")
         messages.append({"role": "assistant", "content": content})
         return content
 
@@ -418,6 +469,8 @@ def looks_like_garbled_input(text: str) -> bool:
 @click.argument('project_directory',
                 type=click.Path(exists=False, file_okay=False, dir_okay=True))
 def main(project_directory):
+    configure_console_utf8()
+
     project_dir = os.path.abspath(project_directory)
     if os.path.exists(project_dir) and not os.path.isdir(project_dir):
         raise click.ClickException(f"路径存在但不是目录：{project_dir}")
@@ -436,7 +489,7 @@ def main(project_directory):
     )
     agent = ReActAgent(tools=tools, model=model, project_directory=project_dir)
 
-    task = input("请输入任务：")
+    task = ReActAgent._to_utf8_safe_text(input("请输入任务："))
     if looks_like_garbled_input(task):
         raise click.ClickException(
             "检测到输入可能是乱码（包含大量 ?）。请先执行 `chcp 65001`，再重新输入任务。"
