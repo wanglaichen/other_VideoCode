@@ -2,19 +2,24 @@ cline 配置如下：
 {
   "mcpServers": {
     "weather": {
-      "type": "stdio",
+      "disabled": false,
       "timeout": 60,
+      "type": "stdio",
       "command": "uv",
       "args": [
         "--directory",
-        "E:\\Byb_pro\\git_pro\\other_VideoCode\\mcp",
+        "E:/BB_pro/gitHub/other_VideoCode/mcp",
         "run",
         "weather.py"
+      ]
+    },
+    "fetch": {
+      "timeout": 60,
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
       ]
     }
   }
 }
-
-
-
-
