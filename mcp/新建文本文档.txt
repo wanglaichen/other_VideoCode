@@ -1,0 +1,20 @@
+cline 配置如下：
+{
+  "mcpServers": {
+    "weather": {
+      "type": "stdio",
+      "timeout": 60,
+      "command": "uv",
+      "args": [
+        "--directory",
+        "E:\\Byb_pro\\git_pro\\other_VideoCode\\mcp",
+        "run",
+        "weather.py"
+      ]
+    }
+  }
+}
+
+
+
+
