@@ -473,10 +473,10 @@ def main(project_directory):
 
     project_dir = os.path.abspath(project_directory)
     if os.path.exists(project_dir) and not os.path.isdir(project_dir):
-        raise click.ClickException(f"路径存在但不是目录：{project_dir}")
+        raise click.ClickException(f"Path exists but is not a directory: {project_dir}")
     if not os.path.exists(project_dir):
         os.makedirs(project_dir, exist_ok=True)
-        print(f"[Info] 目录不存在，已自动创建：{project_dir}")
+        print(f"[Info] Directory created: {project_dir}")
     load_dotenv(dotenv_path=".env", encoding="utf-8-sig")
 
     tools = [read_file, write_to_file, run_terminal_command]
@@ -489,16 +489,16 @@ def main(project_directory):
     )
     agent = ReActAgent(tools=tools, model=model, project_directory=project_dir)
 
-    task = ReActAgent._to_utf8_safe_text(input("请输入任务："))
+    task = ReActAgent._to_utf8_safe_text(input("Enter task: "))
     if looks_like_garbled_input(task):
         raise click.ClickException(
-            "检测到输入可能是乱码（包含大量 ?）。请先执行 `chcp 65001`，再重新输入任务。"
+            "Input may be garbled (contains too many '?'). Run `chcp 65001` and try again."
         )
 
     try:
         final_answer = agent.run(task)
     except Exception as e:
-        raise click.ClickException(f"模型请求失败：{e}")
+        raise click.ClickException(f"Model request failed: {e}")
 
     print(f"\n\n[Final Answer] {final_answer}")
 
